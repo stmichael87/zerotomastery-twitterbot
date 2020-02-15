@@ -18,7 +18,7 @@ def check_mentions(api, keywords, since_id):
         if any(keyword in tweet.text.lower() for keyword in keywords):
             if not tweet.user.following:
                 tweet.user.follow()
-
+                print(tweet.user)
             api.update_status(status="ZTMBot to the rescue!", in_reply_to_status_id=tweet.id)
     return new_since_id
 # Define a follow_followers function that accepts api and check if they are not followed, then follow them
@@ -32,13 +32,13 @@ def fav_retweet(api):
     and automatic like the tweet if the tweet has not been liked and
     retweet the tweet if the tweet has not been retweeted
     '''
-    search = ["#ZTM", "#Zerotomastery"]
-    for tweet in tweepy.Cursor(api.search, search).items(100):
+    search_string =("#Zerotomastery OR #ZTM")
+    for tweet in tweepy.Cursor(api.search, q=search_string).items(100):
         try:
-            if not tweet.favorite():
+            if not tweet.favorited:
                 tweet.favorite()
                 print("I have liked the tweet")
-            if not tweet.retweet():
+            if not tweet.retweeted:
                 tweet.retweet()
                 print('Retweeted the tweet')
         except tweepy.TweepError as e:
@@ -49,9 +49,10 @@ def fav_retweet(api):
 def main():
     api = create_api()
     since_id = 1
+    fav_retweet(api)
     while True:
         since_id = check_mentions(api, ["#ZTM", "#Zerotomastery"], since_id)
-        fav_retweet()
+        fav_retweet(api)
         time.sleep(60)
 
 # if __name__ main, call the main function

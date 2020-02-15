@@ -1,42 +1,69 @@
-# This file is for the Streaming tweepy API
-# import time, tweepy, and the create_api function from config.py
 import tweepy
 import time
 from config import create_api
-# Create a class that accepts the tweepy.StreamListener
-class Fav_tweet_Retweet(tweepy.StreamListener):
-# Define an __init__ function inside the class that accepts self and api parameters
+
+
+class Stream_Listener(tweepy.StreamListener):
+    """Defines the tweet status and error state
+    """
+
     def __init__(self, api):
         self.api = api
         self.me = api.me()
-# Define an on_status function inside the class that accepts self and tweet parameters, retweet and favorite if the tweet has not been already
+
     def on_status(self, tweet):
-        if tweet.in_reply_to_status_id is not None or \
-        tweet.user.id == self.me.id:
+        """Checks the status of the tweet. Mark it as favourite if not already done it and retweet if not already
+        retweeted.
+        :param tweet: tweet from listening to the stream
+        """
+        if tweet.in_reply_to_status_id is not None or tweet.user.id == self.me.id:
+            # This tweet is a reply or I'm its author so, ignore it
             return
-        if not tweet.favorite():
-            tweet.favorite()
-            print("I have liked the tweet")
-        if not tweet.retweet():
-            tweet.retweet()
-            print('Retweeted the tweet')
-# Define an on_error function inside the class to catch errors
+        if not tweet.favorited:
+            # Mark it as Liked, since we have not done it yet
+            try:
+                tweet.favorite()
+                print('Stream favorited tweet:', tweet.text)
+            except tweepy.TweepError as error:
+                print(error)
+        if not tweet.retweeted:
+            # Retweet, since we have not retweeted it yet
+            try:
+                tweet.retweet()
+                print('Stream retweeted tweet:', tweet.text)
+            except tweepy.TweepError as error:
+                print(error)
+
     def on_error(self, status_code):
+        """When encountering an error while listening to the stream, return False if `status_code` is 420 and print
+        the error.
+        :param status_code:
+        :return: False when `status_code` is 420 to disconnect the stream.
+        """
         if status_code == 420:
+            # returning False in on_error disconnects the stream
             return False
         elif status_code == 429:
-            time.sleep(60)
-            return
+            time.sleep(900)
         else:
-            print(status_code)
-################### END OF CLASS ########################
+            print(tweepy.TweepError, status_code)
 
-# Define a main function that takes keywords and ids and connects to the tweepy stream api using those keywords and ids to track and follow
-def main(keywords, id):
+
+def main(keyword, follow_id):
+    """Main method to initialize the api, create a Stream_Listener object to track tweets based on certain keywords and
+    follow tweet owners and the mentors.
+    """
     api = create_api()
-    tweet_listener = Fav_tweet_Retweet(api)
-    stream = tweepy.Stream(api.auth, tweet_listener)
-    stream.filter(track=keywords, follow=id, languages=['en'])
-# if __name__ main define keywords to search for and ids to follow and run the main function with those
+    my_stream_listener = Stream_Listener(api)
+    my_stream = tweepy.Stream(auth=api.auth, listener=my_stream_listener)
+
+    my_stream.filter(track=keyword, follow=follow_id)
+    #my_stream.filter(track=keyword, is_async=True, languages=["en"])
+
+
 if __name__ == '__main__':
-    main(["#ZTM", "#Zerotomastery"], ['743086819', '2998698451', '224115510'])
+    # The first is for Andrei Neagoie, The second for Yihua Zhang and the third for Daniel Bourke Yihua Zhang and the
+    # third for Daniel Bourke
+    keywords = ["#ZTM", ]
+    follow_list = ['224115510', '33792375', '9934236963863042']
+    main(keywords, follow_list)
